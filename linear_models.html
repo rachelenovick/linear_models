@@ -585,18 +585,41 @@ nyc_airbnb |&gt;
 ## 4 room_typeShared room    -95.0      11.3      -8.43 5.52e-17</code></pre>
 <p>Create a list of dataframes, and iterate to fit the model each
 time</p>
-<pre class="r"><code>nyc_airbnb |&gt; 
+<pre class="r"><code>nested_lm_results =
+  nyc_airbnb |&gt; 
   nest(data = -borough) |&gt;  #data = everything except borough
   mutate(
-    fits = map(data, lm_airbnb) #fitting 4! models! all! at! once!
+    fits = map(data, lm_airbnb), #fitting 4! models! all! at! once!
+    results = map(fits, broom::tidy)
+  ) |&gt; 
+  select(borough, results) |&gt; 
+  unnest(results)</code></pre>
+<p>Do some untidying</p>
+<pre class="r"><code>nested_lm_results |&gt; 
+  select(borough, term, estimate) |&gt; 
+  pivot_wider(
+    names_from = term,
+    values_from = estimate
   )</code></pre>
-<pre><code>## # A tibble: 4 × 3
-##   borough   data                  fits  
-##   &lt;fct&gt;     &lt;list&gt;                &lt;list&gt;
-## 1 Bronx     &lt;tibble [649 × 4]&gt;    &lt;lm&gt;  
-## 2 Queens    &lt;tibble [3,821 × 4]&gt;  &lt;lm&gt;  
-## 3 Brooklyn  &lt;tibble [16,810 × 4]&gt; &lt;lm&gt;  
-## 4 Manhattan &lt;tibble [19,212 × 4]&gt; &lt;lm&gt;</code></pre>
+<pre><code>## # A tibble: 4 × 5
+##   borough   `(Intercept)` stars `room_typePrivate room` `room_typeShared room`
+##   &lt;fct&gt;             &lt;dbl&gt; &lt;dbl&gt;                   &lt;dbl&gt;                  &lt;dbl&gt;
+## 1 Bronx              90.1  4.45                   -52.9                  -70.5
+## 2 Queens             91.6  9.65                   -69.3                  -95.0
+## 3 Brooklyn           69.6 21.0                    -92.2                 -106. 
+## 4 Manhattan          95.7 27.1                   -124.                  -154.</code></pre>
+<p>Use an <em>anonymous</em> function instead of
+<code>lm_airbnb</code></p>
+<pre class="r"><code>nested_lm_results =
+  nyc_airbnb |&gt; 
+  nest(data = -borough) |&gt;  
+  mutate(
+    fits = map(data, \(df) lm(price ~ stars + room_type, data = df)), 
+    #instead of using lm_airbnb function
+    results = map(fits, broom::tidy)
+  ) |&gt; 
+  select(borough, results) |&gt; 
+  unnest(results)</code></pre>
 </div>
 
 

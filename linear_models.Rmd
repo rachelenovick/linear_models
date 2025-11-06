@@ -178,15 +178,43 @@ nyc_airbnb |>
 Create a list of dataframes, and iterate to fit the model each time
 
 ```{r}
-nyc_airbnb |> 
+nested_lm_results =
+  nyc_airbnb |> 
   nest(data = -borough) |>  #data = everything except borough
   mutate(
-    fits = map(data, lm_airbnb) #fitting 4! models! all! at! once!
+    fits = map(data, lm_airbnb), #fitting 4! models! all! at! once!
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(borough, results) |> 
+  unnest(results)
+  
+```
+
+Do some untidying
+
+```{r}
+nested_lm_results |> 
+  select(borough, term, estimate) |> 
+  pivot_wider(
+    names_from = term,
+    values_from = estimate
   )
 ```
 
+Use an *anonymous* function instead of `lm_airbnb`
 
-
+```{r}
+nested_lm_results =
+  nyc_airbnb |> 
+  nest(data = -borough) |>  
+  mutate(
+    fits = map(data, \(df) lm(price ~ stars + room_type, data = df)), 
+    #instead of using lm_airbnb function
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(borough, results) |> 
+  unnest(results)
+```
 
 
 
