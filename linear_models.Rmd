@@ -216,6 +216,36 @@ nested_lm_results =
   unnest(results)
 ```
 
+Let's do an even more extreme example!!
+
+```{r}
+manhattan_analysis =
+  nyc_airbnb |> 
+  filter(
+    borough == "Manhattan"
+    ) |> 
+  nest(data = -neighbourhood) |> 
+  mutate(
+    fits = map(data, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(neighbourhood, results) |> 
+  unnest(results)
+#fit 32 lm's, one for each neighborhood in Manhattan, look at results in a dataframe
+```
+
+Make a plot
+
+```{r}
+manhattan_analysis |> 
+  filter(term == "stars") |> 
+  mutate(
+    neighbourhood = fct_reorder(neighbourhood, estimate)
+  ) |> 
+  ggplot(aes(x = neighbourhood, y = estimate)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 
 
