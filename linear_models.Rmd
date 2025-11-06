@@ -133,6 +133,57 @@ fit_interactions |>
   broom::tidy()
 ```
 
+Let's just look at Brooklyn first
+
+```{r}
+nyc_airbnb |> 
+  filter(borough == "Brooklyn") |> 
+  lm(price ~ stars + room_type, data = _) |>  #placeholder dataset goes here "_"
+  broom::tidy()
+
+nyc_airbnb |> 
+  filter(borough == "Manhattan") |> 
+  lm(price ~ stars + room_type, data = _) |>  #placeholder dataset goes here "_"
+  broom::tidy()
+
+nyc_airbnb |> 
+  filter(borough == "Bronx") |> 
+  lm(price ~ stars + room_type, data = _) |>  #placeholder dataset goes here "_"
+  broom::tidy()
+
+nyc_airbnb |> 
+  filter(borough == "Queens") |> 
+  lm(price ~ stars + room_type, data = _) |>  #placeholder dataset goes here "_"
+  broom::tidy()
+
+##Uh oh! We copied and pasted code multiple times. Time to create a function!
+```
+
+Write a short function
+
+```{r}
+#Here's my function:
+lm_airbnb = function(df) {
+  
+  lm(price ~ stars + room_type, data = df)
+  
+}
+
+nyc_airbnb |> 
+  filter(borough == "Queens") |> 
+  lm_airbnb() |> #using my function that only requires one argument
+  broom::tidy()
+```
+
+Create a list of dataframes, and iterate to fit the model each time
+
+```{r}
+nyc_airbnb |> 
+  nest(data = -borough) |>  #data = everything except borough
+  mutate(
+    fits = map(data, lm_airbnb) #fitting 4! models! all! at! once!
+  )
+```
 
 
 
