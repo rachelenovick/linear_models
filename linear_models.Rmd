@@ -1,0 +1,126 @@
+---
+title: "linear_models"
+output: html_document
+date: "2025-11-06"
+---
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+
+```
+
+Load the NYC airbnb data
+
+```{r}
+data(nyc_airbnb)
+```
+
+Look at the data / do some cleaning
+
+```{r}
+
+nyc_airbnb =
+  nyc_airbnb |> 
+  mutate(
+    stars = review_scores_location / 2
+  ) |> 
+  rename(
+    borough = neighbourhood_group
+  ) |> 
+  filter(borough != "Staten Island") |> 
+  select(price, stars, borough, room_type, neighbourhood)
+
+```
+
+Do regression!!
+
+```{r}
+fit = lm(price ~ stars + borough, data = nyc_airbnb)
+```
+
+do some additional cleaning then refit
+
+```{r}
+nyc_airbnb =
+  nyc_airbnb |> 
+  mutate(
+    borough = fct_infreq(borough), #most common = reference group
+    room_type = fct_infreq(room_type)
+  )
+
+fit = lm(price ~ stars + borough, data = nyc_airbnb)
+```
+
+look at `lm` stuff
+
+```{r, eval = FALSE}
+
+#clunky and don't recommend doing this
+summary(fit)
+names(summary(fit))
+summary(fit)[["coefficients"]]
+summary(fit)[["df"]]
+
+fitted.values(fit)
+resid(fit)
+
+```
+
+Look at cleaner `lm` stuff
+
+```{r}
+fit |> 
+  broom::tidy() |> #pulls out what you care about from linear model
+  mutate(
+    term = str_replace(term, "borough", "Borough: ")
+  ) |> 
+  select(term, estimate, p.value) |> 
+  knitr::kable(digits = 3)
+
+#basically gives you a dataframe/table of the parameter estimates
+
+fit |> 
+  broom::glance() #r-squared, adj. r-squared, sigma, test stat, p-value, df, loglik, AIC, BIC
+```
+
+## Diagnostics
+
+Look at residuals
+
+```{r}
+nyc_airbnb |> 
+  modelr::add_residuals(fit) |> 
+  modelr::add_predictions(fit) |> 
+  filter(resid < 1000) |> 
+  ggplot(aes(x = resid))+
+  geom_histogram()
+
+nyc_airbnb |> 
+  modelr::add_residuals(fit) |> 
+  modelr::add_predictions(fit) |> 
+  filter(resid < 1000) |> 
+  ggplot(aes(x = borough, y = resid))+
+  geom_violin()
+
+nyc_airbnb |> 
+  modelr::add_residuals(fit) |> 
+  modelr::add_predictions(fit) |> 
+  filter(resid < 1000) |> 
+  ggplot(aes(x = stars, y = resid))+
+  geom_point()
+```
+
+What about a categorical variable?
+
+```{r}
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
+#can compare these directly head-to-head b/c they are nested
+
+anova(fit_null, fit_alt) |> 
+  broom::tidy()
+```
+
+
+
