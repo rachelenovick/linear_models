@@ -122,5 +122,23 @@ anova(fit_null, fit_alt) |>
   broom::tidy()
 ```
 
+## Interactions vs. nested data
+
+```{r}
+fit_interactions =
+  lm(price ~ stars*borough + room_type*borough, data = nyc_airbnb)
+##don't have to include main effects in R, it gives it to you automatically
+
+fit_interactions |> 
+  broom::tidy()
+```
+
+
+
+
+
+
+
+
 
 
