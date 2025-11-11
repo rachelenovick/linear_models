@@ -119,3 +119,27 @@ train_df |>
 ```
 
 ![](cross_validation_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Try computing our RMSEs (root mean square error)
+
+``` r
+rmse(linear_mod, test_df)
+```
+
+    ## [1] 0.1260416
+
+``` r
+rmse(smooth_mod, test_df)
+```
+
+    ## [1] 0.07141255
+
+``` r
+rmse(wiggly_mod, test_df)
+```
+
+    ## [1] 0.08275634
+
+``` r
+#smaller rmse usually means better fit
+```

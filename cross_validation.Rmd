@@ -84,6 +84,14 @@ train_df |>
   geom_line(aes(y = pred), color = "red")
 ```
 
+Try computing our RMSEs (root mean square error)
+
+```{r}
+rmse(linear_mod, test_df)
+rmse(smooth_mod, test_df)
+rmse(wiggly_mod, test_df)
+#smaller rmse usually means better fit
+```
 
 
 
