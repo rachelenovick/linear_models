@@ -126,20 +126,87 @@ Try computing our RMSEs (root mean square error)
 rmse(linear_mod, test_df)
 ```
 
-    ## [1] 0.1260416
+    ## [1] 0.1406357
 
 ``` r
 rmse(smooth_mod, test_df)
 ```
 
-    ## [1] 0.07141255
+    ## [1] 0.08898497
 
 ``` r
 rmse(wiggly_mod, test_df)
 ```
 
-    ## [1] 0.08275634
+    ## [1] 0.09315303
 
 ``` r
 #smaller rmse usually means better fit
 ```
+
+## Iterate!
+
+``` r
+cv_df =
+  crossv_mc(lidar_df, n = 100) |> 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  )
+```
+
+Did this work? Yes!
+
+``` r
+cv_df |> pull(train) |> nth(8) #gives e.g. 8th training and testing split
+```
+
+    ## # A tibble: 176 × 3
+    ##    range logratio    id
+    ##    <dbl>    <dbl> <int>
+    ##  1   391  -0.0601     2
+    ##  2   393  -0.0419     3
+    ##  3   394  -0.0510     4
+    ##  4   396  -0.0599     5
+    ##  5   397  -0.0284     6
+    ##  6   399  -0.0596     7
+    ##  7   400  -0.0399     8
+    ##  8   403  -0.0395    10
+    ##  9   406  -0.0604    12
+    ## 10   408  -0.0312    13
+    ## # ℹ 166 more rows
+
+Let’s fit models over and over
+
+``` r
+cv_df =
+cv_df |> 
+  mutate(
+    linear_fits = map(train, \(df) lm(logratio ~ range, data = df)), #using anonymous function
+    smooth_fits = map(train, \(df) mgcv::gam(logratio ~ s(range), data = df)),
+    wiggly_fits = map(train, \(df) mgcv::gam(logratio ~ s(range, k = 50), sp = 10e-8, data = df)),
+  ) |> 
+  #Equivalently, can create a function, and then use it. But we just have 1 input, so let's use an anonymous function
+  mutate(
+    rmse_linear = map2_dbl(linear_fits, test, rmse), #map2 allows 2 input lists (applies a function to 2 inputs) and the dbl shows us the value (uncollapses)
+    rmse_smooth = map2_dbl(smooth_fits, test, rmse),
+    rmse_wiggly = map2_dbl(wiggly_fits, test, rmse)
+  )
+```
+
+Let’s try to look at this better
+
+``` r
+cv_df |> 
+  select(starts_with("rmse")) |> 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) |> 
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin()
+```
+
+![](cross_validation_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
