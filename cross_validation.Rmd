@@ -1,6 +1,6 @@
 ---
 title: "Cross Validation"
-output: html_document
+output: github_document
 date: "2025-11-11"
 ---
 
@@ -8,5 +8,83 @@ date: "2025-11-11"
 library(tidyverse)
 library(modelr)
 library(mgcv)
+library(p8105.datasets)
 ```
+
+Load the LIDAR
+
+```{r}
+data("lidar")
+
+lidar_df =
+  lidar |> 
+  mutate(id = row_number())
+
+lidar_df |> 
+  ggplot(aes(x = range, y = logratio)) +
+  geom_point()
+```
+
+## Create dataframes
+
+```{r}
+#training dataset
+train_df = sample_frac(lidar_df, size = 0.8) |> 
+  arrange(id)
+
+#testing dataframe (antijoin: gives you everything in the larger dataset that's NOT in the smaller one)
+test_df = anti_join(lidar_df, train_df, by = "id")
+```
+
+Look at these
+```{r}
+ggplot(train_df, aes(x = range, y = logratio)) +
+  geom_point() +
+  geom_point(data = test_df, color = "red")
+```
+
+Fit a few models to the `train_df`
+
+```{r}
+linear_mod = lm(logratio ~ range, data = train_df)
+smooth_mod = mgcv::gam(logratio ~ s(range), data = train_df) 
+#nonlinear model fitting mgcv:gam, and then s() gives us something smooth
+
+wiggly_mod = mgcv::gam(logratio ~ s(range, k = 30), sp = 10e-6, data = train_df)
+#don't do this
+```
+
+Look at this (linear)
+
+```{r}
+train_df |> 
+  add_predictions(linear_mod) |> 
+  ggplot(aes(x = range, y = logratio)) +
+  geom_point() +
+  geom_line(aes(y = pred), color = "red")
+```
+
+Look at the smooth one:
+
+```{r}
+train_df |> 
+  add_predictions(smooth_mod) |> 
+  ggplot(aes(x = range, y = logratio)) +
+  geom_point() +
+  geom_line(aes(y = pred), color = "red")
+```
+
+Wiggly (again...don't do this. OVERFITTED)
+
+```{r}
+train_df |> 
+  add_predictions(wiggly_mod) |> 
+  ggplot(aes(x = range, y = logratio)) +
+  geom_point() +
+  geom_line(aes(y = pred), color = "red")
+```
+
+
+
+
 
