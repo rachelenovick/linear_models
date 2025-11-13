@@ -207,3 +207,98 @@ bootstrap_results |>
     ##   <chr>          <dbl>    <dbl>
     ## 1 (Intercept)     1.78     2.09
     ## 2 x               2.91     3.32
+
+## Do it again but faster this time
+
+``` r
+bootstrap_results =
+  sim_df_nonconst |> 
+  bootstrap(n = 10) |> 
+  mutate(
+    df = map(strap, as_tibble),
+    fits = map(df, \(df) lm(y ~ x, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(.id, results) |> 
+  unnest(results)
+```
+
+Look at what this means
+
+``` r
+bootstrap_results |> 
+  group_by(term) |> 
+  summarize(
+    mean = mean(estimate),
+    se = sd(estimate)
+  )
+```
+
+    ## # A tibble: 2 × 3
+    ##   term         mean     se
+    ##   <chr>       <dbl>  <dbl>
+    ## 1 (Intercept)  1.91 0.0662
+    ## 2 x            3.10 0.0912
+
+``` r
+#Same results as before, but more efficient
+```
+
+## Airbnb dataset
+
+Remember this one?
+
+``` r
+data("nyc_airbnb")
+
+nyc_airbnb =
+  nyc_airbnb |> 
+  mutate(stars = review_scores_location / 2) |> 
+  rename(
+    borough = neighbourhood_group
+  ) |> 
+  filter(
+    borough != "Staten Island"
+  ) |> 
+  drop_na(price, stars, room_type) |> 
+  select(price, stars, room_type, borough)
+```
+
+Remind me what this looks like?
+
+``` r
+nyc_airbnb |> 
+  ggplot(aes(x = stars, y = price, color = room_type)) +
+  geom_point(alpha = 0.5)
+```
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+Super skewed, probably shouldn’t trust results of the linear model.
+
+Must bootstrap!
+
+``` r
+airbnb_bootstrap_results =
+  nyc_airbnb |> 
+  filter(borough == "Manhattan") |> 
+  bootstrap(n = 1000) |> 
+  mutate(
+    df = map(strap, as_tibble),
+    fits = map(df, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(.id, results) |> 
+  unnest(results)
+```
+
+Look at the distribution of the slope for stars
+
+``` r
+airbnb_bootstrap_results |> 
+  filter(term == "stars") |> 
+  ggplot(aes(x = estimate)) +
+  geom_density()
+```
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
