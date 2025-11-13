@@ -1,0 +1,11 @@
+---
+title: "Bootstrapping"
+output: github_document
+date: "2025-11-13"
+---
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+```
+
