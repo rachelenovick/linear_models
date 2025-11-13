@@ -120,7 +120,7 @@ So I want to formalize this a bit and extract results.
 ``` r
 boot_straps =
   tibble(
-    iter = 1:10
+    iter = 1:5000
   ) |> 
   mutate(
     bootstrap_sample = map(iter, \(i) boot_sample(df = sim_df_nonconst))
@@ -154,3 +154,56 @@ bootstrap_results =
     results = map(fits, broom::tidy)
   )
 ```
+
+Look at results
+
+``` r
+bootstrap_results |> 
+  select(iter, results) |> 
+  unnest(results) |> 
+  group_by(term) |> 
+  summarize(
+    mean = mean(estimate),
+    se = sd(estimate)
+  )
+```
+
+    ## # A tibble: 2 × 3
+    ##   term         mean     se
+    ##   <chr>       <dbl>  <dbl>
+    ## 1 (Intercept)  1.93 0.0762
+    ## 2 x            3.11 0.103
+
+``` r
+#Compared to sim_df_nonconst broom::tidy - now we have way more confidence, narrower sd for intercept, wider sd for slope
+```
+
+Look at these first
+
+``` r
+bootstrap_results |> 
+  select(iter, results) |> 
+  unnest(results) |> 
+  filter(term == "x") |> 
+  ggplot(aes(x = estimate)) +
+  geom_density()
+```
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
+bootstrap_results |> 
+  select(iter, results) |> 
+  unnest(results) |> 
+  group_by(term) |> 
+  summarize(
+    ci_lower = quantile(estimate, 0.025),
+    ci_upper = quantile(estimate, 0.975),
+  )
+```
+
+    ## # A tibble: 2 × 3
+    ##   term        ci_lower ci_upper
+    ##   <chr>          <dbl>    <dbl>
+    ## 1 (Intercept)     1.78     2.09
+    ## 2 x               2.91     3.32
