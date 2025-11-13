@@ -92,9 +92,11 @@ Write a function to draw a bootstrap sample.
 ``` r
 boot_sample = function(df){
   
-  sample_frac(df, size = 1, replace = TRUE)
+  sample_frac(df, size = 1, replace = TRUE) 
   
 }
+
+#THIS IS HOW WE BOOTSTRAP! REPLACE=TRUE GIVES A DIFFERENT SAMPLE EVERY TIME WE DO IT. size = 1 gives us a proportional sample (the same size as out original sample). This is where we are actually doing 'repeated sampling' from our dataset.
 ```
 
 Does this work?
@@ -141,3 +143,14 @@ boot_straps |>
     ## `geom_smooth()` using formula = 'y ~ x'
 
 ![](bootstrapping_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Actually run my analyses!
+
+``` r
+bootstrap_results =
+  boot_straps |> 
+  mutate(
+    fits = map(bootstrap_sample, \(df) lm(y ~ x, data = df)),
+    results = map(fits, broom::tidy)
+  )
+```
